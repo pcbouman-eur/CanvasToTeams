@@ -53,10 +53,15 @@ for section in course.get_sections():
     enrollments = [enrollment for enrollment in section.get_enrollments()]
     secname = section.name.replace(REMOVE_PATTERN, '').strip()
     secname = ADD_PREFIX + secname
-    students = list(sorted({e.sis_user_id for e in enrollments if e.role == 'StudentEnrollment'}))
+    students = list(sorted({e.sis_user_id for e in enrollments if e.role == 'StudentEnrollment' and not e.sis_user_id is None}))
     if not section.name in SKIP_SET:
         data[secname] = students
     all_students.update(students)
+    none_students = [e for e in enrollments if e.sis_user_id is None]
+    if len(none_students) > 0:
+        print('The following students were not added to '+secname+' because the sis_user_id is missing')
+        for ns in none_students:
+            print(ns)
     
 if len(CHANNEL_ALL.strip()) != 0:
     data[CHANNEL_ALL] = list(sorted(all_students))
