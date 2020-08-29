@@ -61,7 +61,7 @@ for section in course.get_sections():
     if len(none_students) > 0:
         print('The following students were not added to '+secname+' because the sis_user_id is missing')
         for ns in none_students:
-            print(ns)
+            print(vars(ns))
     
 if len(CHANNEL_ALL.strip()) != 0:
     data[CHANNEL_ALL] = list(sorted(all_students))
