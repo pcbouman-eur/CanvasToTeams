@@ -1,5 +1,6 @@
 from canvasapi import Canvas
 import json
+import os
 
 # Do `pip install canvasapi` first before running this script!
 
@@ -61,12 +62,55 @@ for section in course.get_sections():
     if len(none_students) > 0:
         print('The following students were not added to '+secname+' because the sis_user_id is missing')
         for ns in none_students:
-            print(vars(ns))
+            try:
+                print(ns.user.name+' (id: '+ns.user.id+')')
+            except:
+                print(vars(ns))
     
 if len(CHANNEL_ALL.strip()) != 0:
     data[CHANNEL_ALL] = list(sorted(all_students))
 
-with open(fname, 'w') as out:
-    json.dump(data, out)
-    print('Course registrations written to file: '+fname)
+processed = False
+if os.path.isfile(fname):
+    # TODO: how to deal with multiple mutations??
+    print('Old .json file found. Comparing the old file and the new data')
+    with open(fname) as infile:
+        old_data = json.load(infile)
+    mutation = 1
+    
+    while True:
+        mut_file = 'course-'+str(course.id)+'-mutation-'+str(mutation)+'.json'
+        if not os.path.isfile(mut_file):
+            break
+        mutation += 1           
+        with open(mut_file) as infile:
+            mut_data = json.load(infile)
+            for channel, std_list in mut_data.items():
+                if not channel in old_data:
+                    old_data[channel] = std_list
+                else:
+                    old_data[channel] = list({std for std in old_data[channel]}.union(set(std_list)))
+    removed = 0
+    for channel, std_list in old_data.items():
+        if channel in data:
+            for std in std_list:
+                if std in data[channel]:
+                    data[channel].remove(std)
+                    removed += 1
+    print('Removed '+str(removed)+' entries that were already added earlier')
+    mutation = 1
+    while True:
+        fname = 'course-'+str(course.id)+'-mutation-'+str(mutation)+'.json'
+        if os.path.isfile(fname):
+            mutation += 1
+        else:
+            break       
 
+count = sum([len(std_list) for std_list in data.values()])
+
+if count > 0:
+    with open(fname, 'w') as out:
+        json.dump(data, out)
+        print('Course registrations for '+str(count)+' students written to file: '+fname)
+else:
+    print('No new course registrations found. Not writing anything')
